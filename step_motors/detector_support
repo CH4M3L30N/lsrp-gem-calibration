@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+#!coding=utf8
+#import fake_motor_devices as motor_devices
+import devices, sys, threading, os, serial#, numpy, time
+
+if sys.version_info.major == 3:
+  import tkinter as tk
+else:  
+  import Tkinter as tk
+
+
+class Application(tk.Frame, devices.Support):
+
+  def __init__(self, master=None, config_section="Support"):
+    tk.Frame.__init__(self, master)
+    devices.Support.__init__(self, config_section)
+    self.preset_names = devices.DeviceConfig("Presets").NAME
+    self.PresetName = tk.StringVar(value=self.preset_names[self.preset] if self.preset is not None else "<no preset>")
+    
+    self.ImgLeft = tk.PhotoImage(file="images/arrow_left.gif")
+    self.ImgRight = tk.PhotoImage(file="images/arrow_right.gif")
+    self.ImgUp = tk.PhotoImage(file="images/arrow_up.gif")
+    self.ImgDown = tk.PhotoImage(file="images/arrow_down.gif")
+    
+    self.EntStep = tk.Entry(self, justify=tk.CENTER, width=8)
+    
+    self.BtnIncr = tk.Button(self, text="+", padx=0, pady=0, height=1,
+                             width=1, command=self.cmd_increase)
+    self.BtnDecr = tk.Button(self, text="-", padx=0, pady=0, height=1,
+                             width=1, command=self.cmd_decrease)
+    
+    self.LblStatus = tk.Label(self, height=1, width=16, anchor=tk.CENTER, text="",
+                              relief=tk.SUNKEN, padx=3)
+    self.def_color = self["bg"]
+    self.DoAuto = tk.IntVar(value=0)
+
+ # sub-frame for arrows
+    self.FrmMove =  tk.Frame(self, bd=3, height=60, width=60, takefocus=1, relief=tk.GROOVE)
+    self.BtnUp    = tk.Button(self.FrmMove, anchor=tk.CENTER, activebackground="red",
+                              image=self.ImgUp,    command=lambda : self.cmd_move("y", +1))
+    self.BtnDown  = tk.Button(self.FrmMove, anchor=tk.CENTER, activebackground="red",
+                              image=self.ImgDown,  command=lambda : self.cmd_move("y", -1))
+    self.BtnLeft  = tk.Button(self.FrmMove, anchor=tk.CENTER, activebackground="red",
+                              image=self.ImgLeft,  command=lambda : self.cmd_move("x", -1))
+    self.BtnRight = tk.Button(self.FrmMove, anchor=tk.CENTER, activebackground="red",
+                              image=self.ImgRight, command=lambda : self.cmd_move("x", +1))
+#    self.BtnStop = tk.Button(self.FrmMove, anchor=tk.CENTER, activebackground="red",
+#                             text="STOP", font=("", 9, ""), command=self.stop, padx=1, pady=8)
+    self.LblK1 = tk.Label(self.FrmMove, height=1, width=4, anchor=tk.CENTER, text="")
+    self.LblK2 = tk.Label(self.FrmMove, height=1, width=4, anchor=tk.CENTER, text="")
+
+# step, coordinates, return, reset
+    self.LblStep = tk.Label(self, anchor=tk.CENTER, justify=tk.CENTER,
+                            text="Steps",height=1, width=16)
+    self.LblX = [tk.Label(self, text="X:"),
+                 tk.Label(self, text="+12345", width=7, relief=tk.SUNKEN, anchor=tk.E, bg="lightblue"),
+                 tk.Label(self, text="+123.45 mm", width=11, relief=tk.SUNKEN, anchor=tk.E)]
+    self.LblY = [tk.Label(self, text="Y:"),
+                 tk.Label(self, text="+12345", width=7, relief=tk.SUNKEN, anchor=tk.E, bg="lightblue"),
+                 tk.Label(self, text="+123.45 mm", width=11, relief=tk.SUNKEN, anchor=tk.E)]
+#    self.BtnReset = tk.Button(self, anchor=tk.CENTER, activebackground="red", text="Reset coordinates",
+#                              padx=1, height=1, width=16, command=self.cmd_reset)
+    self.BtnCalibrate = tk.Button(self, anchor=tk.CENTER, activebackground="red", text="Calibrate",
+                           padx=2, pady=1, height=1, width=12, command=self.cmd_calibrate)
+    self.ChkbtnAuto = tk.Checkbutton(self, text="Auto", anchor=tk.CENTER,
+                                     variable=self.DoAuto, command=self.start_auto)
+    self.MnPreset = tk.OptionMenu(self, self.PresetName, "<no preset>", *self.preset_names, "<new preset>",
+                                  command=self.cmd_go_to_preset)
+    self.BtnSave = tk.Button(self, anchor=tk.CENTER, activebackground="red", text="Save preset",
+                             padx=1, height=1, width=12, command=self.save_preset)
+#    self.BtnHelix = Button(self, image=self.ImgHelix, anchor=CENTER,
+#                           activebackground="red", command=self.cmd_helix)
+
+# grid
+    self.FrmMove. grid(row=0, rowspan=6, column=0, padx=1, pady=1)
+    self.BtnUp.   grid(row=0, column=1, padx=1, pady=1, sticky=tk.N)
+    self.BtnDown. grid(row=2, column=1, padx=1, pady=1, sticky=tk.S)
+    self.BtnLeft. grid(row=1, column=0, padx=1, pady=1, sticky=tk.W)
+    self.BtnRight.grid(row=1, column=2, padx=1, pady=1, sticky=tk.E)
+#    self.BtnStop .grid(row=1, column=1, padx=0, pady=0)
+    self.LblK1.   grid(row=2, column=2)
+    self.LblK2.   grid(row=2, column=0)
+
+    for i in range(3):
+      self.LblX[i].grid(row=0, column=i+1, padx=2, pady=2)
+      self.LblY[i].grid(row=1, column=i+1, padx=2, pady=2)
+
+    self.LblStep.  grid(row=2, column=1, columnspan=3, padx=1, pady=0)
+    self.EntStep.  grid(row=3, column=1, columnspan=3, padx=0, pady=0)
+    self.BtnIncr.grid(row=3, column=1, columnspan=3, padx=2, pady=0, sticky=tk.E)
+    self.BtnDecr.grid(row=3, column=1, columnspan=3, padx=2, pady=0, sticky=tk.W)
+    self.BtnCalibrate. grid(row=4, column=1, columnspan=3, padx=1, pady=0)
+    self.MnPreset.grid(row=6, column=0, columnspan=3, padx=1, pady=0, sticky=tk.W)
+    self.BtnSave.grid(row=6, column=1, columnspan=3, padx=1, pady=0)
+    self.LblStatus.   grid(columnspan=4, padx=1, pady=1, sticky=tk.S)
+
+    self.ChkbtnAuto.grid(row=5, column=1, columnspan=3, padx=20, pady=1)
+#    self.BtnHelix.grid(row=5, column=0, padx=6, pady=1, sticky=W)
+    self.LblStatus["width"] = 40
+
+    self.grid()
+    self.bind_events()
+    # add extra events
+    for obj in self.winfo_children():
+      if obj.winfo_class() != "Entry":
+        obj.bind("<KeyPress-Up>",   lambda evt: self.btn_event_handler(evt, self.BtnUp))
+        obj.bind("<KeyPress-Down>", lambda evt: self.btn_event_handler(evt, self.BtnDown))
+        obj.bind("<KeyPress-r>",    lambda evt: self.btn_event_handler(evt, self.BtnReturn))
+    
+    self.EntStep.insert(0, "0")
+    self.BtnUp.invoke()
+    self.EntStep.delete("0", tk.END)
+    self.EntStep.insert(0, str(self.AUTO_STEP))
+    if not devices.use_epics:
+    	self.ChkbtnAuto.config(state=tk.DISABLED)
+    self.update_status()
+
+#  def destroy(self):
+  def save_preset(self):
+    self.save_config()
+  
+
+  def cmd_increase(self):
+    "BtnIncrement callback"
+    step = int(self.EntStep.get())
+    if step < 20000:   step *= 2
+    self.EntStep.delete("0", tk.END)
+    self.EntStep.insert("0", step)
+
+
+  def cmd_decrease(self):
+    "BtnDecrement callback"
+    step = int(self.EntStep.get())
+    if step > 1:
+      step //= 2
+    self.EntStep.delete("0", tk.END)
+    self.EntStep.insert("0", step)
+
+  def start_edit_handler(self, event):
+    self.EntStep.focus_force()
+    self.EntStep.select_to(tk.END)
+
+  def finish_edit_handler(self, event):
+    step = ""
+    for i in self.EntStep.get():
+      if i.isdigit():
+        step += i
+    if not step or not int(step):
+      step = str(self.AUTO_STEP)
+    self.EntStep.delete("0", tk.END)
+    self.EntStep.insert("0", step)
+    self.LblStatus.focus_force()
+
+
+  def btn_event_handler(self, event, button):
+    "Universal event handler to emulate user mouse click"
+    current_focused_widget = self.focus_get()
+    button.focus_set()
+    button.event_generate("<KeyPress-space>")
+    current_focused_widget.focus_set()
+
+
+  def bind_events(self):
+    self.LblStatus.focus_force()
+#widgets able to take focus except Entry
+    for obj in self.winfo_children():
+      if obj.winfo_class() != "Entry":
+        obj.bind("<KeyPress-Right>", lambda evt: self.btn_event_handler(evt, self.BtnRight))
+        obj.bind("<KeyPress-Left>", lambda evt: self.btn_event_handler(evt, self.BtnLeft))
+        obj.bind("<KeyPress-KP_Add>", lambda evt: self.btn_event_handler(evt, self.BtnIncr))
+        obj.bind("<KeyPress-KP_Subtract>", lambda evt: self.btn_event_handler(evt, self.BtnDecr))
+        obj.bind("<KeyPress-e>", lambda evt: self.start_edit_handler(evt))
+    self.EntStep.bind("<KeyPress-Return>", self.finish_edit_handler)
+    self.EntStep.bind("<KeyPress-KP_Enter>", self.finish_edit_handler)
+
+
+  def print_status(self, message):
+    "Represents status in bottom side of the application window"
+    self.LblStatus["text"] = "Status: " + message
+
+
+### DEBUG ###    
+#    self.ChkbtnAuto.invoke()
+
+   
+####
+  def cmd_move(self, direction, sign):
+    '''Move motors'''
+#    t = time.time()
+    self.print_status("busy")
+    try:
+      self.move(direction, sign*int(self.EntStep.get()))
+    except ValueError:
+      self.status["state"] = "wrong step"
+    except serial.SerialException:
+      self.status["state"] = "no connection"
+      print("Connection error!")
+    except motor_devices.PowerFail as fail:
+      self.status["state"] = "no power"
+      print("Power fail of device #", fail.N)
+    self.update_status()
+#    print("Motor time:", time.time()-t)
+
+
+  def cmd_reset(self):
+    "BtnReset callback"
+    self.print_status("busy")
+    try:
+      self.reset_coordinate()
+    except serial.SerialException:
+      self.status["state"] = "no connection"
+      print("Connection error!")
+    except motor_devices.PowerFail as fail:
+      self.status["state"] = "no power"
+      print("Power fail of device #", fail.N)
+    self.update_status()
+      
+
+  def cmd_return(self):
+    "It is a BtnReturn callback"
+    self.print_status("busy")
+    try:
+      self.move_to_zero()
+    except serial.SerialException:
+      self.status["state"] = "no connection"
+      print("Connection error!")
+    except motor_devices.PowerFail as fail:
+      self.status["state"] = "no power"
+      print("Power fail of device #", fail.N)
+    self.update_status()
+    
+    
+  def cmd_calibrate(self):
+    "It is a BtnCalibrate callback"
+    try:
+      self.calibrate()
+      self.preset = None
+      self.PresetName.set("<calibrated>")
+    except (serial.SerialException, devices.PowerFail):
+      raise
+    self.update_status()
+
+
+  def start_auto(self):
+    if self.DoAuto.get():
+      self.auto_thread = threading.Thread(target=self.auto,
+                         name="detector_support_auto_thread")
+      self.auto_thread.start()
+      self.BtnUp.config(state=tk.DISABLED)
+      self.BtnDown.config(state=tk.DISABLED)
+      self.BtnRight.config(state=tk.DISABLED)
+      self.BtnLeft.config(state=tk.DISABLED)
+      self.EntStep.config(state=tk.DISABLED)
+      self.BtnIncr.config(state=tk.DISABLED)
+      self.BtnDecr.config(state=tk.DISABLED)
+      self.BtnCalibrate.config(state=tk.DISABLED)
+      self.MnPreset.config(state=tk.DISABLED)
+      self.BtnSave.config(state=tk.DISABLED)
+    else:
+      self.auto_thread.join()
+      self.BtnUp.config(state=tk.NORMAL)
+      self.BtnDown.config(state=tk.NORMAL)
+      self.BtnRight.config(state=tk.NORMAL)
+      self.BtnLeft.config(state=tk.NORMAL)
+      self.EntStep.config(state=tk.NORMAL)
+      self.BtnIncr.config(state=tk.NORMAL)
+      self.BtnDecr.config(state=tk.NORMAL)
+      self.BtnCalibrate.config(state=tk.NORMAL)
+      self.MnPreset.config(state=tk.NORMAL)
+      self.BtnSave.config(state=tk.NORMAL)
+    self.thread_sync.clear()
+    # launch later
+    self.after(1000*int(self.REFR_TIME), self.update_status)
+
+
+  def update_status(self):
+    "It is a function to check and represent status of motors: its trailers and Mirrors"
+    try:  
+      self.LblX[1]["text"] = "{:+6}".format(self.status["x"])
+      self.LblX[2]["text"] = "{:+7.2f} mm".format(self.SCALE[0]*self.status["x"])
+      self.LblY[1]["text"] = "{:+6}".format(self.status["y"])
+      self.LblY[2]["text"] = "{:+7.2f} mm".format(self.SCALE[1]*self.status["y"])
+
+      self.LblX[0].update()
+      self.LblX[1].update()
+      self.LblY[0].update()
+      self.LblY[1].update()
+
+      
+      if not self.DoAuto.get():
+        if self.status["y_edges"][1]:
+          self.BtnUp.config(state=tk.DISABLED, bg="red")
+        else:
+          self.BtnUp.config(state=tk.NORMAL, bg=self.def_color)
+        if self.status["y_edges"][0]:
+          self.BtnDown.config(state=tk.DISABLED, bg="red")
+        else:
+          self.BtnDown.config(state=tk.NORMAL, bg=self.def_color)
+        if self.status["x_edges"][1]:
+          self.BtnRight.config(state=tk.DISABLED, bg="red")
+        else:
+          self.BtnRight.config(state=tk.NORMAL, bg=self.def_color)
+        if self.status["x_edges"][0]:
+          self.BtnLeft.config(state=tk.DISABLED, bg="red")
+        else:
+          self.BtnLeft.config(state=tk.NORMAL, bg=self.def_color)
+      
+      if   self.status["K+"][0]: self.LblK1.configure(text="1:K+", bg="red")
+      elif self.status["K-"][0]: self.LblK1.configure(text="1:K-", bg="red")
+      else:                      self.LblK1.configure(text="", bg=self.def_color)
+      
+      if   self.status["K+"][1]: self.LblK2.configure(text="2:K+", bg="red")
+      elif self.status["K-"][1]: self.LblK2.configure(text="2:K-", bg="red")
+      else:                      self.LblK2.configure(text="", bg=self.def_color)
+      self.print_status(self.status["state"])
+      
+      if self.DoAuto.get():
+        self.thread_sync.set()
+        self.after(1000*int(self.REFR_TIME), self.update_status)  # doesn't spend time
+
+    except KeyError: 
+      raise #pass
+
+
+  def cmd_go_to_preset(self, preset_name):
+    try:
+# auto save
+#      if self.preset is not None:
+#        self.save_config()
+      if preset_name == "<new preset>":
+        self.save_config(len(self.preset_names))
+        self.move_to(len(self.preset_names))
+        self.save_config()
+      elif preset_name == "<no preset>":
+        self.preset = None
+      else:
+        # existing preset
+        new_preset = self.preset_names.index(preset_name)
+        self.move_to(new_preset)
+        self.preset = new_preset
+    except (serial.SerialException, devices.PowerFail):
+      pass
+    self.update_status()
+
+
+
+
+def is_launched():
+  appname = sys.argv[0]
+  appcopies = []
+  for i in os.popen('ps -ef | grep %s' % (appname)).readlines():
+    if 'python' in i:
+      appcopies.append(i)
+  if len(appcopies)==1:   return False
+  else:
+    print('Another instance of %s had been already launched. \nTo work further, terminate it first (get PID by "ps -ef | grep %s").' % (appname, appname))
+    return True
+
+
+if __name__ == "__main__":
+  if is_launched():
+    sys.exit()
+  app = Application()
+  app.master.title("Detector support")
+  app.mainloop()

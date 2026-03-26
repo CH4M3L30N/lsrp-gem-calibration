@@ -1,0 +1,30 @@
+# WARNING!!! NO INLINE COMMENTS ARE ALLOWED!!!
+[Support]
+PORT = /dev/ttyUSB0
+BAUDRATE = 19200
+SN = [338, 345]
+ADDR = [3, 2]
+# 1 for non-inverted movement, -1 for inverted movement  
+DIR = [-1, 1]
+# where K0 is located, in the end of the motor range (+1) or in the beginning (-1) 
+K0_DIR = [1, 1]
+ZERO = [0, 31000]
+SCALE = [0.0125, 0.01]
+NAME = Coordinate detector support
+#RATES_FILE = /home/rsse/Control/multielectron_monitor/rates.pkl
+# number of string in loads file = number of counter channel
+#LOADS_CHANNEL = 0
+# minimum load in Auto regime
+#MIN_LOAD = 500
+#MAX_REL_LOAD = 2500
+# the number of measurements which are averaged in Auto regime
+#MA_PERIOD = 4
+# the number of steps of motor in Auto regime
+AUTO_STEP = 100
+# saved mirror positions
+X = [9290, 36400, 40000, 0]
+Y = [16855, 12500, 1000, 31000]
+
+[Presets]
+NAME = [Laser polarimeter, Test beam, Off the beam]
+
