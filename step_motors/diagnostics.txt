@@ -1,0 +1,9 @@
+time_size = 1560
+converged = True, iter = 2
+max data = 105782.35007081245
+max avg  = 105670.9527526478
+median sigma_stat = 5.507277e-04
+chi2_stat = 1283.95840103938, ndf = 639, chi2/ndf = 2.0093
+scale = 1.4175, sys/stat = 1.0047
+chi2_tot = 639.0, chi2/ndf = 1.0000
+b = 6.951411881186957e-06, sigma_b = 3.026501918892701e-05, |b|/sigma_b = 0.2297
