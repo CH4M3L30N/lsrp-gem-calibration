@@ -25,7 +25,7 @@ REAL_EPS_FILE = "epsilon_real.txt"
 
 PADS_X        = 32
 PADS_Y        = 20
-TIME_SIZE     = (PADS_X + 10 * 2) * (PADS_Y + 5 * 2)
+TIME_SIZE     = 692
 CYCLES        = 50
 TOL_EPS       = 1e-6
 USE_SMOOTH    = False
@@ -35,7 +35,7 @@ SMOOTH_SIGMA  = 1.0
 
 # data
 data = []
-for num in range(TIME_SIZE):
+for num in range(1, TIME_SIZE + 1):
     frame = np.zeros((PADS_Y, PADS_X))
     path = f"{FILE_NAME}{num}.txt"
     if not os.path.exists(path):
