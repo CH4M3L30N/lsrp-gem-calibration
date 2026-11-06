@@ -279,15 +279,53 @@ with open("avg_data.txt", "w") as f:
 
 np.save("avg_data.npy", avg_data)
 
-# ----------------------------- диагностика профиля -----------------------------
-#iy_max, jx_max = np.unravel_index(np.argmax(avg_data), avg_data.shape)
-#print(f"\navg peak at (y={iy_max}, x={jx_max}), expected ({cy}, {cx})")
-#if (iy_max, jx_max) != (cy, cx):
-#    print("WARNING: avg peak not at expected center -- check centers / Y-flip")
+# ----------------------------- sigma по двум осям -----------------------------
+def sigma_1d(profile, coords):
+    """
+    Стандартное отклонение 1D-профиля:
+        sigma^2 = sum( (x - <x>)^2 * w ) / sum( w ),  w = profile
+    profile : 1D array неотрицательных значений
+    coords  : 1D array координат (той же длины)
+    Возвращает (sigma, mean, total) или (nan, nan, nan), если sum(profile) <= 0.
+    """
+    profile = np.asarray(profile, dtype=float)
+    coords  = np.asarray(coords,  dtype=float)
 
-#print("avg column through center (x=cx):")
-#for i in range(PADS_Y):
-#    print(f"  y={i:2d}: {avg_data[i, cx]:.2f}")
-#print("avg row through center (y=cy):")
-#for j in range(PADS_X):
-#    print(f"  x={j:2d}: {avg_data[cy, j]:.2f}")
+    if profile.size < 2:
+        return (np.nan, np.nan, np.nan)
+
+    # обрезаем отрицательные значения (на всякий случай)
+    w = np.clip(profile, 0.0, None)
+    total = w.sum()
+    if total <= 0:
+        return (np.nan, np.nan, np.nan)
+
+    mean = np.sum(coords * w) / total
+    var  = np.sum(((coords - mean) ** 2) * w) / total
+    sigma = np.sqrt(max(var, 0.0))
+    return (sigma, mean, total)
+
+
+# ось x: профиль вдоль строки y = cy
+x_coords = np.arange(PADS_X, dtype=float)
+profile_x = avg_data[cy, :]
+sigma_x, mean_x, total_x = sigma_1d(profile_x, x_coords)
+
+# ось y: профиль вдоль столбца x = cx
+y_coords = np.arange(PADS_Y, dtype=float)
+profile_y = avg_data[:, cx]
+sigma_y, mean_y, total_y = sigma_1d(profile_y, y_coords)
+
+# в пикселях профиля (1 пиксель = 1 шаг детектора)
+print("\n=== sigma (в шагах детектора / пикселях профиля) ===")
+print(f"x-axis (row y={cy}): sigma = {sigma_x:.4f} px, "
+      f"mean = {mean_x:.3f}, total = {total_x:.3e}")
+print(f"y-axis (col x={cx}): sigma = {sigma_y:.4f} px, "
+      f"mean = {mean_y:.3f}, total = {total_y:.3e}")
+
+PAD_MM = [2., 1.]
+
+if PAD_MM is not None:
+    print("\n=== sigma (в мм, PAD_MM = {} x {} мм) ===".format(*PAD_MM))
+    print(f"x-axis: sigma = {sigma_x * PAD_MM[0]:.4f} mm")
+    print(f"y-axis: sigma = {sigma_y * PAD_MM[1]:.4f} mm")

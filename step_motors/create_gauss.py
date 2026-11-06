@@ -42,7 +42,8 @@ epsilon_mean = 0
 for i in range(place_y):
     epsilon.append([])
     for j in range(place_x):
-        random_eps = random.uniform(0.5, 1.0)
+        #random_eps = random.uniform(0.5, 1.0)
+        random_eps = 1 - np.sin(np.pi / place_x * j) * 0.1
         epsilon[i].append(random_eps)
         epsilon_mean += random_eps
         #epsilon.append(1.0)

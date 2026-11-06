@@ -1,0 +1,6 @@
+# started 2026-11-05T18:20:59, size 32 x 20 pads, step 1 x 1 pads, t = 0.01 s, cycles 1, mode: steps one side
+# pad = 2 x 1 mm, motor scale = [0.0125, 0.01] mm/step, support at beam center: x = 9040, y = 17667 steps
+# detector stays at the point from t_arrive until t_move of the next line
+# beam_x, beam_y: beam center in detector pads (x: 0..32, y: 0..20, y from the top row)
+# n t_move t_arrive t_arrive_iso beam_x beam_y support_x_steps support_y_steps
+# EVENT 1793877672.698 STOP
