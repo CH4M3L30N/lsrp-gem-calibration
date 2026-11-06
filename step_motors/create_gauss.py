@@ -31,9 +31,9 @@ def gaussian(x, y, mean_x, mean_y, sigma_x, sigma_y, size_x, size_y, count_num):
 # Generate a 20x10 Gaussian grid
 #gauss_list = create_2d_gaussian(ray_x, ray_y)
 
-cx = -10
-cy = -5
-file_max_num = (place_x - cx * 2) * (place_y - cy * 2)
+cx = 0
+cy = 0
+file_max_num = (place_x) * (place_y) * 2
 centers = []
 stepx = 1
 epsilon = []
@@ -100,10 +100,10 @@ for n in range(file_max_num):
     centers.append([cx,cy])
     
     cx += stepx
-    if cx > 41:
-        cx = -10
+    if cx > 32:
+        cx = 0
         cy += 1
-    if cy > 25:
+    if cy > 20:
         break
         
 #print(gauss_list)

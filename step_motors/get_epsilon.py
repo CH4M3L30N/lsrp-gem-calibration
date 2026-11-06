@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-data[t][y][x] ~ eps[y][x] * avg[cy+y-center_y_t][cx+x-center_x_t]
-avg profile
-eps[y][x] efficiency
+data[t][y][x] ~ eps[y][x] * avg[cy + y - center_y_t][cx + x - center_x_t]
+avg        -- усреднённый профиль
+eps[y][x]  -- эффективность регистрации
 
 sigma_stat[y][x] = sqrt( sum_t data*avg^2 ) / sum_t avg^2
-sigma_tot  = scale * sigma_stat,  scale = sqrt(max(chi2/ndf, 1))
+sigma_tot = scale * sigma_stat,  scale = sqrt(max(chi2/ndf, 1))
 sigma_sys = sqrt(sigma_tot^2 - sigma_stat^2)
 
 files:
-epsilon.txt epsilon cointed x y eps sigma_stat sigma_sys sigma_tot
-avg_data.npy counted profile
+  epsilon.txt  -- x y eps sigma_stat sigma_sys sigma_tot
+  avg_data.txt -- x y avg
+  avg_data.npy -- профиль (numpy)
 """
 
 import os
@@ -19,23 +20,23 @@ import scipy.stats
 from iminuit import Minuit
 from iminuit.cost import LeastSquares
 
+# ----------------------------- параметры -----------------------------
 FILE_NAME     = "data/data"
 CENTER_FILE   = "data/centers.txt"
 REAL_EPS_FILE = "epsilon_real.txt"
 
 PADS_X        = 32
 PADS_Y        = 20
-TIME_SIZE     = 692
+TIME_SIZE     = 693          # data0.txt .. data692.txt
 CYCLES        = 50
 TOL_EPS       = 1e-6
 USE_SMOOTH    = False
 SMOOTH_SIGMA  = 1.0
 
-# file reading
-
-# data
+# ----------------------------- чтение данных -----------------------------
+# data{t}.txt: <x> <y> <value>   (x = 0..31, y = 0..19)
 data = []
-for num in range(1, TIME_SIZE + 1):
+for num in range(TIME_SIZE):
     frame = np.zeros((PADS_Y, PADS_X))
     path = f"{FILE_NAME}{num}.txt"
     if not os.path.exists(path):
@@ -59,7 +60,10 @@ print(f"max data = {np.max(data):.3f}")
 print(f"max data[0] = {np.max(data[0]):.3f}, "
       f"max data[-1] = {np.max(data[-1]):.3f}")
 
-# centers
+# ----------------------------- чтение центров -----------------------------
+# centers.txt: <x> <y>   (x = 0..32, y = 0..20)
+# ВАЖНО: y в centers.txt отсчитывается СНИЗУ ВВЕРХ,
+#        а data[t][y] -- СВЕРХУ ВНИЗ. Переворачиваем y.
 center = []
 with open(CENTER_FILE, "r") as f:
     for line in f:
@@ -69,29 +73,33 @@ with open(CENTER_FILE, "r") as f:
         parts = ln.split()
         if len(parts) < 2:
             continue
-        cx_t, cy_t = int(parts[0]), int(parts[1])
-        center.append((cx_t, cy_t))   # (x, y)
+        xs, ys_raw = int(parts[0]), int(parts[1])
+        cxt = xs                          # X не перевёрнут
+        cyt = PADS_Y - 1 - ys_raw         # Y перевёрнут: 19 - y_raw
+        center.append((cxt, cyt))
 
 if len(center) != TIME_SIZE:
     print(f"WARNING: len(center) = {len(center)} != TIME_SIZE = {TIME_SIZE}")
-print(f"len(center) = {len(center)}, center[0] = {center[0]}")
+print(f"len(center) = {len(center)}, center[0] = {center[0]}, "
+      f"center[-1] = {center[-1]}")
 
-# starting counting data
-cx = PADS_X // 2
-cy = PADS_Y // 2
+# ----------------------------- инициализация -----------------------------
+cx = PADS_X // 2          # 16
+cy = PADS_Y // 2          # 10
 
 epsilon  = np.ones((PADS_Y, PADS_X))
 avg_data = np.zeros((PADS_Y, PADS_X))
 
-# normalize
+# нормировочный масштаб
 max_data_all = max(np.max(d) for d in data)
 data_maxmean = [np.max(d) for d in data
                 if np.max(d) > max_data_all - max_data_all ** 0.5]
 a_norm = float(np.mean(data_maxmean)) if data_maxmean else float(max_data_all)
 print(f"a_norm = {a_norm:.3f}  (N_full = {len(data_maxmean)} / {TIME_SIZE})")
 
-# functions
+# ----------------------------- вспомогательные функции -----------------------------
 def build_avg(eps):
+    """Усреднённый профиль. Нормировка на число валидных кадров per-pixel."""
     a = np.zeros((PADS_Y, PADS_X))
     count = np.zeros((PADS_Y, PADS_X), dtype=int)
     for t in range(TIME_SIZE):
@@ -103,7 +111,6 @@ def build_avg(eps):
                 if 0 <= iy < PADS_Y and 0 <= jx < PADS_X:
                     a[i, j] += data[t][iy, jx] / eps[iy, jx]
                     count[i, j] += 1
-    
     mask = count > 0
     a[mask] /= count[mask]
     b = np.max(a)
@@ -115,6 +122,7 @@ def build_avg(eps):
     return a
 
 def count_eps(avg):
+    """Оценка eps[i][j] по фиксированному avg."""
     eps = np.ones((PADS_Y, PADS_X))
     for i in range(PADS_Y):
         for j in range(PADS_X):
@@ -134,7 +142,7 @@ def count_eps(avg):
         eps /= m
     return eps
 
-# iterations
+# ----------------------------- итерационный цикл -----------------------------
 print("\niter | max|d eps| | max avg | max data")
 for n in range(CYCLES):
     avg_new = build_avg(epsilon)
@@ -147,11 +155,13 @@ for n in range(CYCLES):
     print(f"{n:3d}  |  {d_eps:.2e}  |  {np.max(avg_data):.1f}  |  {np.max(data):.1f}")
 
     if d_eps < TOL_EPS:
+        avg_data = build_avg(epsilon)
+        print(f"converged at iter {n}, max|d eps| = {d_eps:.2e}")
         break
 else:
-    print("epsilon wasn't found")
+    print(f"NOT converged in {CYCLES} iters, max|d eps| = {d_eps:.2e}")
 
-# statistic errors
+# ----------------------------- статистические ошибки -----------------------------
 numers = np.zeros((PADS_Y, PADS_X))
 denoms = np.zeros((PADS_Y, PADS_X))
 for i in range(PADS_Y):
@@ -168,7 +178,7 @@ eps_errors_stat = np.full((PADS_Y, PADS_X), np.inf)
 mask_ok = denoms > 0
 eps_errors_stat[mask_ok] = np.sqrt(numers[mask_ok]) / denoms[mask_ok]
 
-# modeling
+# ----------------------------- сравнение с эталоном -----------------------------
 have_real = os.path.exists(REAL_EPS_FILE)
 if have_real:
     real_eps = np.zeros((PADS_Y, PADS_X))
@@ -181,14 +191,13 @@ if have_real:
             parts = ln.split()
             if len(parts) < 3:
                 continue
-            
             xx, yy, vv = int(parts[0]), int(parts[1]), float(parts[2])
             if 0 <= yy < PADS_Y and 0 <= xx < PADS_X:
                 real_eps[yy, xx] = vv
             else:
                 n_bad += 1
     if n_bad:
-        print(str(n_bad) + "points out of range")
+        print(f"WARNING: {n_bad} точек real_eps вне диапазона")
 
     diff = epsilon - real_eps
     chi2_stat = np.sum((diff / eps_errors_stat) ** 2)
@@ -203,7 +212,7 @@ if have_real:
     chi2_tot = np.sum((diff / eps_errors) ** 2)
     prob_tot = scipy.stats.chi2.sf(chi2_tot, ndf)
 
-    # ndf_eff autocorrelations
+    # ndf_eff по автокорреляции остатка
     r = (diff - diff.mean()).flatten()
     acf = np.correlate(r, r, mode='full')
     acf /= acf[len(acf) // 2]
@@ -213,7 +222,7 @@ if have_real:
     sum_rho = np.sum(acf[len(acf) // 2 + 1 : len(acf) // 2 + k])
     ndf_eff = n_pix / (1 + 2 * sum_rho) if sum_rho > 0 else n_pix
 
-    # minuit
+    # среднее смещение через Minuit
     bin_nums = np.arange(n_pix)
     def const_model(x, b):
         return b * np.ones_like(x, dtype=float)
@@ -229,8 +238,8 @@ else:
     scale = 1.0
     b_val = b_err = np.nan
 
-# ----------------------------- вывод результатов -----------------------------
-print("\n    results   ")
+# ----------------------------- вывод -----------------------------
+print("\n=== результаты ===")
 print(f"converged: {d_eps < TOL_EPS}, iter = {n}")
 print(f"epsilon: min = {np.min(epsilon):.4f}, max = {np.max(epsilon):.4f}, "
       f"mean = {np.mean(epsilon):.4f}")
@@ -254,7 +263,7 @@ if have_real:
     print(f"b = {b_val:.3e} +/- {b_err:.3e}  ->  "
           f"|b|/sigma_b = {abs(b_val)/b_err:.3f}")
 else:
-    print("(real_eps not found)")
+    print("(real_eps не найден -- сравнение пропущено)")
 
 # ----------------------------- запись -----------------------------
 with open("epsilon.txt", "w") as f:
@@ -263,4 +272,22 @@ with open("epsilon.txt", "w") as f:
             f.write(f"{j} {i} {epsilon[i,j]:.10e} {eps_errors_stat[i,j]:.6e} "
                     f"{eps_errors_sys[i,j]:.6e} {eps_errors[i,j]:.6e}\n")
 
+with open("avg_data.txt", "w") as f:
+    for i in range(PADS_Y):
+        for j in range(PADS_X):
+            f.write(f"{j} {i} {avg_data[i,j]:.10e}\n")
+
 np.save("avg_data.npy", avg_data)
+
+# ----------------------------- диагностика профиля -----------------------------
+#iy_max, jx_max = np.unravel_index(np.argmax(avg_data), avg_data.shape)
+#print(f"\navg peak at (y={iy_max}, x={jx_max}), expected ({cy}, {cx})")
+#if (iy_max, jx_max) != (cy, cx):
+#    print("WARNING: avg peak not at expected center -- check centers / Y-flip")
+
+#print("avg column through center (x=cx):")
+#for i in range(PADS_Y):
+#    print(f"  y={i:2d}: {avg_data[i, cx]:.2f}")
+#print("avg row through center (y=cy):")
+#for j in range(PADS_X):
+#    print(f"  x={j:2d}: {avg_data[cy, j]:.2f}")
