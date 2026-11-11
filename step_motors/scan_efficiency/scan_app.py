@@ -12,6 +12,12 @@ Buttons:
   stop  -- returns detector to the center of the green zone
   
 saves data only if step finished before data collection
+
+Data format: data<YYYYMMDD_HHMMSS>.txt
+  <ts_start_step> <ts_end_step> <ts_start_data> <ts_end_data> <I> <c_x> <c_y> <data>
+  ts_* : "YYYY-MM-DDTHH:MM:SS.mmm"
+  data: 640 int
+  c_x, c_y: laser center in the system of the detector
 """
 
 from tkinter import *
@@ -21,7 +27,7 @@ import time
 import os, datetime
 import numpy as np
 
-# ----------------------------- optional hardware -----------------------------
+#                   check if devices or epics are working
 try:
     import devices
     HAVE_DEVICES = True
@@ -36,10 +42,9 @@ except ImportError:
     HAVE_EPICS = False
     print("WARNING: 'epics' not found -- save_data will be a no-op")
 
-# devices.py reads settings.cfg by relative path
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# global constants
+#                             global constants
 
 # canvas real size
 CAN_WIDTH       = 370
@@ -59,13 +64,29 @@ GREEN_HEIGHT    = 10 * MP
 PADS_X, PADS_Y = 32, 20
 SCALE = [2., 1.]   # mm per motor step (fallback if devices not available)
 
-# ----------------------------- Scanner -----------------------------
+#                        helping functions
+def fmt_ts(t):
+    #  YYYY-MM-DDTHH:MM:SS.mmm
+    return datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+
+def epics_ts_to_str(val):
+    #  YYYY-MM-DDTHH:MM:SS.mmm
+    if val is None:
+        return None
+    if isinstance(val, str):
+        return val
+    try:
+        return fmt_ts(float(val))
+    except (ValueError, TypeError):
+        return None
+
+#                      Scanner class (GUI + logic)
 class Scanner:
     def __init__(self, root, canvas, detector_item, green_item, scan_item,
                  x_var, y_var, xstep_var, ystep_var, t_var, cycles_var,
                  status_var, modes_var, posx_label, posy_label, time_label, dev=None):
         
-        # variables for scanning
+        #               variables for scanning
         # basic app parameters
         self.root = root
         self.canvas = canvas
@@ -130,19 +151,42 @@ class Scanner:
             print(f"Device connected: x = {self.ref_x}, y = {self.ref_y}, "
                   f"SCALE = {self.motor_scale}")
 
-        # data collection
+        # EPICS PVs
         self.pv = None
+        self.pv_tsdas = None
+        self.pv_tsdae = None
         if HAVE_EPICS:
             try:
                 self.pv = epics.PV('lsrp:spot:hist')
             except Exception as e:
-                print(f"WARNING: epics.PV init failed ({e}) -- save_data disabled")
+                print(f"WARNING: epics.PV('lsrp:spot:hist') failed ({e})")
                 self.pv = None
+            try:
+                self.pv_tsdas = epics.PV('lsrp:spot:timestamp_begin')
+            except Exception as e:
+                print(f"WARNING: epics.PV('lsrp:spot:timestamp_begin') failed ({e})")
+                self.pv_tsdas = None
+            try:
+                self.pv_tsdae = epics.PV('lsrp:spot:timestamp_end')
+            except Exception as e:
+                print(f"WARNING: epics.PV('lsrp:spot:timestamp_end') failed ({e})")
+                self.pv_tsdae = None
+            try:
+                self.pv_I = epics.PV('lsrp:VEPP4:CurrentE1-RB')
+            except Exception as e:
+                print(f"WARNING: epics.PV('lsrp:VEPP4:CurrentE1-RB') failed ({e})")
+                self.pv_I = None
 
-        # centers file (opened lazily in start())
-        self.centers_file = None
+        # data file
+        self.data_file = None
+        self.data_filepath = None
+        
+        # current timestamp
+        self.current_ts_start_step = None
+        self.current_ts_end_step   = None
 
-    # ---------- geometry ----------
+    #                 drawing
+    # change scanning zone for the new parameters
     def update_geometry(self):
         w = max(self.x_var.get() * MP, 10)
         h = max(self.y_var.get() * MP, 10)
@@ -162,6 +206,7 @@ class Scanner:
 
         self.draw_detector(self.cur_x, self.cur_y)
 
+    # draw detector
     def draw_detector(self, cx, cy):
         canvas_cx = self.scan_x0 + cx
         canvas_cy = self.scan_y0 + cy
@@ -170,21 +215,18 @@ class Scanner:
         self.canvas.coords(self.detector_item,
                            canvas_cx - hw, canvas_cy - hh,
                            canvas_cx + hw, canvas_cy + hh)
-        # position in MOTOR STEPS measured from top-left corner of scan zone
-        x_steps = cx / MP
-        y_steps = cy / MP
+        x_steps = (cx - self.scan_w / 2) / MP
+        y_steps = (cy - self.scan_h / 2) / MP
         self.posx_label.config(text=f"x={x_steps:.0f}")
         self.posy_label.config(text=f"y={y_steps:.0f}")
 
-    # ---------- hardware (per nik_scan_app.py) ----------
+    #                         move detector
     def move_support(self, cx, cy):
-        """Move the support so that the detector center is at (cx, cy) of the zone (canvas px).
-        Returns the movement start time, or None on error."""
         if self.dev is None:
-            return time.time()   # demo: pretend movement happened
+            return time.time()
 
-        dx = (cx - self.scan_w / 2) / MP       # detector center offset from beam, pads
-        dy = (cy - self.scan_h / 2) / MP       # canvas: y down, support: y up
+        dx = (cx - self.scan_w / 2) / MP
+        dy = (cy - self.scan_h / 2) / MP
         sc = self.motor_scale
         tx = self.ref_x + int(round(dx * SCALE[0] / sc[0]))
         ty = self.ref_y - int(round(dy * SCALE[1] / sc[1]))
@@ -196,37 +238,63 @@ class Scanner:
             return None
         return t_move
 
-    # ---------- save_data (per nik_scan_app.py) ----------
-    def save_data(self, time_idx):
-        """Read lsrp:spot:hist, write data/data{N}.txt (32x20) and data/centers.txt."""
+    #                    reads data from GEM and stores it
+    def save_data(self, time_idx, ts_start_step, ts_end_step):
+        if self.data_file is None:
+            return False
+
+        # reading data
         if self.pv is None:
-            return   # no epics -- nothing to save
+            data_flat = [0] * (PADS_X * PADS_Y)
+            arr = None
+        else:
+            value = self.pv.get()
+            if value is None:
+                data_flat = [0] * (PADS_X * PADS_Y)
+                arr = None
+            else:
+                arr = np.array(value)
+                try:
+                    arr.resize(PADS_Y, PADS_X)
+                    arr = arr[::-1, :]            # flip y: y=0 сверху
+                    data_flat = arr.flatten().astype(int).tolist()
+                except Exception:
+                    data_flat = [0] * (PADS_X * PADS_Y)
+                    arr = None
 
-        value = self.pv.get()
-        if value is None:
-            return
-
-        np_value = np.array(value)
-        # expected 20*32 = 640 values; resize to (20, 32)
+        # reading timestamps for data
+        ts_start_data = epics_ts_to_str(self.pv_tsdas.get() if self.pv_tsdas else None)
+        ts_end_data   = epics_ts_to_str(self.pv_tsdae.get() if self.pv_tsdae else None)
+        
+        # works if ts_end_data > ts_end_step
         try:
-            np_value.resize(20, 32)
-        except Exception as e:
-            print(f"save_data: resize failed ({e})")
-            return
+            ts_end_step_dt = datetime.datetime.fromisoformat(ts_end_step)
+            ts_end_data_dt = datetime.datetime.fromisoformat(ts_end_data) if ts_end_data else None
+        except (ValueError, TypeError):
+            ts_end_data_dt = None
 
-        os.makedirs("data", exist_ok=True)
-        with open(f"data/data{time_idx}.txt", "w+") as f:
-            for i in range(20):
-                for j in range(32):
-                    f.write(f"{j} {i} {np_value[i][j]}\n")
-                    
-        draw_heatmap(heat_canvas, np_value)
+        if ts_end_data_dt is None or ts_end_data_dt <= ts_end_step_dt:
+            return False
 
-        if self.centers_file is not None:
-            self.centers_file.write(f"{self.cur_x//MP} {self.cur_y//MP}\n")
-            self.centers_file.flush()
+        # draws data map (lower canvas)
+        if arr is not None:
+            draw_heatmap(heat_canvas, arr)
 
-    # ---------- path ----------
+        c_x = int(round((self.cur_x - self.scan_w / 2) / MP)) + DETECTOR_WIDTH // 2 // MP
+        c_y = int(round((self.cur_y - self.scan_h / 2) / MP)) + DETECTOR_HEIGHT // 2 // MP
+
+        I = self.pv_I.get()
+
+        # saves data to file
+        data_str = " ".join(str(v) for v in data_flat)
+        line = (f"{ts_start_step} {ts_end_step} "
+                f"{ts_start_data} {ts_end_data} "
+                f"{I:.6f} {c_x} {c_y} {data_str}\n")
+        self.data_file.write(line)
+        self.data_file.flush()
+        return True
+
+    #             builds path for the moving (three different options right now)
     def build_path(self):
         xs = max(self.xstep_var.get() * MP, 1)
         ys = max(self.ystep_var.get() * MP, 1)
@@ -257,34 +325,44 @@ class Scanner:
     def center_position(self):
         return (self.scan_w / 2, self.scan_h / 2)
 
-    # ---------- control ----------
+    #                             buttons
     def start(self):
+        # start or continue
         if self.running or self.returning or self.waiting:
             return
         if self.paused:
             self.paused = False
             self.running = True
-            self.status_var.set("Running")
+            self.status_var.set("Running (retry)")
             self.step()
             return
 
-        # open centers file (truncate) for a new scan
-        os.makedirs("data", exist_ok=True)
-        if self.centers_file is not None:
-            self.centers_file.close()
-        self.centers_file = open("data/centers.txt", "w")
+        # create data file before starting and close previous
+        if self.data_file is not None:
+            self.data_file.close()
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.data_filepath = f"data/data{ts}.txt"
+        self.data_file = open(self.data_filepath, "w")
+        print(f"Writing to {self.data_filepath}")
 
+        # starting parameters
         self.path = self.build_path()
         self.position = 0
         self.step_times = []
         self.last_step_time = None
         self.total_time = 0.0
         self.remaining_s = 0.0
+        
+        # update tss
+        self.current_ts_start_step = None
+        self.current_ts_end_step   = None
 
+        # moving to the start
         self.waiting = True
         self.status_var.set("Wait")
         self._move_to_start()
 
+    # moving to the start function
     def _move_to_start(self):
         if not self.waiting:
             return
@@ -316,6 +394,7 @@ class Scanner:
         delay_ms = max(1, int(self.t_var.get() * 1000))
         self.after_id = self.root.after(delay_ms, self._move_to_start)
 
+    # pausing
     def pause(self):
         if not self.running:
             return
@@ -324,8 +403,13 @@ class Scanner:
         if self.after_id is not None:
             self.root.after_cancel(self.after_id)
             self.after_id = None
+            
+        # update tss
+        self.current_ts_start_step = None
+        self.current_ts_end_step   = None
         self.status_var.set("Paused")
 
+    # stop scanning and return to the center
     def stop(self):
         if self.after_id is not None:
             self.root.after_cancel(self.after_id)
@@ -335,12 +419,12 @@ class Scanner:
         self.waiting = False
         self.returning = True
         self.status_var.set("Returning to center...")
-        # hardware: move support back to center immediately (like nik_scan_app.stop)
         self.move_support(*self.center_position())
         self._return_step()
 
-    # ---------- scanning ----------
+    #                             moving detector by steps
     def step(self):
+        # check ending
         if not self.running:
             return
         if self.position >= len(self.path):
@@ -353,26 +437,45 @@ class Scanner:
                 avg_step = 0.0
             self.total_time = avg_step * len(self.path)
             self.time_label.config(text=self._format_time(self.total_time))
-            if self.centers_file is not None:
-                self.centers_file.close()
-                self.centers_file = None
+            if self.data_file is not None:
+                self.data_file.close()
+                print(f"Closed {self.data_filepath}")
+                self.data_file = None
             return
 
-        now = time.time()
-        if self.last_step_time is not None and len(self.step_times) < 10:
-            self.step_times.append(now - self.last_step_time)
-        self.last_step_time = now
+        # counting timestamps (фиксируем ts_end_step один раз на позицию,
+        # чтобы данные успели догнать его и не ждать бесконечно)
+        if self.current_ts_end_step is None:
+            now = time.time()
+            if self.last_step_time is not None and len(self.step_times) < 10:
+                self.step_times.append(now - self.last_step_time)
+            self.last_step_time = now
 
-        # save current measurement before moving (same as nik_scan_app.py)
-        self.save_data(self.position)
+            self.current_ts_start_step = fmt_ts(now - self.t_var.get())
+            self.current_ts_end_step   = fmt_ts(now)
 
+        ts_start_step = self.current_ts_start_step
+        ts_end_step   = self.current_ts_end_step
+
+        # saves data
+        ok = self.save_data(self.position, ts_start_step, ts_end_step)
+        if not ok:
+            self.status_var.set(f"Waiting for fresh data (pos {self.position})")
+            delay_ms = max(10, int(self.t_var.get() * 1000))
+            self.after_id = self.root.after(delay_ms, self.step)
+            return
+
+        # данные свежие -- сбрасываем зафиксированные ts для следующей позиции
+        self.current_ts_start_step = None
+        self.current_ts_end_step   = None
+
+        # motors moving
         self.cur_x, self.cur_y = self.path[self.position]
         self.draw_detector(self.cur_x, self.cur_y)
         self.root.update_idletasks()
 
         t_move = self.move_support(self.cur_x, self.cur_y)
         if t_move is None:
-            # hardware error: pause; start will retry this point
             self.running = False
             self.paused = True
             return
@@ -380,6 +483,7 @@ class Scanner:
         self.position += 1
         self.status_var.set(f"Running {self.position}/{len(self.path)}")
 
+        # remaining time counting
         if len(self.step_times) >= 10:
             avg_step = sum(self.step_times) / len(self.step_times)
             remaining_steps = len(self.path) - self.position
@@ -391,6 +495,7 @@ class Scanner:
         delay_ms = max(1, int(self.t_var.get() * 1000))
         self.after_id = self.root.after(delay_ms, self.step)
 
+    # formating time from seconds
     @staticmethod
     def _format_time(seconds):
         total = int(seconds * 1000)
@@ -399,7 +504,7 @@ class Scanner:
         ms = total % 1000
         return f"{mm:02d}:{ss:02d}.{ms:03d}"
 
-    # ---------- return to center ----------
+    #                      move to center
     def _return_step(self):
         if not self.returning:
             return
@@ -422,15 +527,14 @@ class Scanner:
         self.draw_detector(self.cur_x, self.cur_y)
         self.status_var.set(f"Returning... ({dist:.1f} px)")
 
-        # support is already back at center (move_support called in stop());
-        # here only animation
         delay_ms = 10
         self.after_id = self.root.after(delay_ms, self._return_step)
 
 
-# ----------------------------- heatmap -----------------------------
+#                           data drawing (lower canvas)
 def draw_heatmap(canvas, data_2d):
-    """Draw 2D array as a heatmap filling the whole canvas (no white borders)."""
+    """Draw 2D array as a heatmap filling the whole canvas.
+    Flip x so that the map corresponds to the detector orientation."""
     canvas.delete("heat")
     rows = len(data_2d)
     cols = len(data_2d[0]) if rows > 0 else 0
@@ -452,20 +556,20 @@ def draw_heatmap(canvas, data_2d):
             r = int(255 * v)
             b = int(255 * (1 - v))
             color = f"#{r:02x}00{b:02x}"
-            x0 = j * cell_w
+            x0 = (cols - 1 - j) * cell_w    # flip x для heatmap
             y0 = i * cell_h
             canvas.create_rectangle(x0, y0, x0 + cell_w, y0 + cell_h,
                                     fill=color, outline="", tags="heat")
 
 
-# ----------------------------- main window -----------------------------
+#                           frame parameters
 root = Tk()
 root.title("Efficiency test")
 root.geometry("920x760")
 root.resizable(False, False)
 
-x_var      = IntVar(value=52)
-y_var      = IntVar(value=30)
+x_var      = IntVar(value=32)
+y_var      = IntVar(value=20)
 xstep_var  = IntVar(value=1)
 ystep_var  = IntVar(value=1)
 t_var      = DoubleVar(value=0.01)
@@ -474,9 +578,7 @@ modes      = ["one side", "both sides"]
 modes_var  = StringVar(value=modes[0])
 status_var = StringVar(value="Not ready")
 
-# ============================================================
-# LEFT side: two canvases (top = scan, bottom = heatmap)
-# ============================================================
+#                                   canvases
 pos_canvas = Canvas(bg="white", width=CAN_WIDTH, height=CAN_HEIGHT)
 pos_canvas.place(x=10, y=10)
 
@@ -490,15 +592,12 @@ heat_canvas.place(x=10, y=320)
 heat_data = [[0.0] * PADS_X for _ in range(PADS_Y)]
 draw_heatmap(heat_canvas, heat_data)
 
-# ============================================================
-# RIGHT side: controls
-# ============================================================
+#                                   controls
 COL_X_LABEL = 430
 COL_X_ENTRY = 460
 COL_X_POS   = 620
 COL_W_ENTRY = 60
 
-# ---- size ----
 ttk.Label(root, text="size (motor steps)").place(x=COL_X_LABEL, y=10)
 
 ttk.Label(root, text="x").place(x=COL_X_LABEL, y=50)
@@ -511,7 +610,6 @@ ttk.Entry(textvariable=y_var, width=8).place(x=COL_X_ENTRY, y=90)
 posy_label = ttk.Label(root, text="y=0")
 posy_label.place(x=COL_X_POS, y=90)
 
-# ---- step ----
 ttk.Label(root, text="step (motor steps)").place(x=COL_X_LABEL, y=140)
 
 ttk.Label(root, text="x").place(x=COL_X_LABEL, y=180)
@@ -520,26 +618,18 @@ ttk.Entry(textvariable=xstep_var, width=8).place(x=COL_X_ENTRY, y=180)
 ttk.Label(root, text="y").place(x=COL_X_LABEL, y=220)
 ttk.Entry(textvariable=ystep_var, width=8).place(x=COL_X_ENTRY, y=220)
 
-# ---- t ----
 ttk.Label(root, text="t (s)").place(x=COL_X_LABEL, y=260)
 ttk.Entry(textvariable=t_var, width=8).place(x=COL_X_ENTRY, y=260)
 
-# ---- time ----
 ttk.Label(root, text="time:").place(x=COL_X_LABEL, y=300)
 time_label = ttk.Label(root, text="00:00.000")
 time_label.place(x=COL_X_ENTRY + 20, y=300)
 
-# ============================================================
-# BUTTONS
-# ============================================================
 BTN_X = COL_X_LABEL
 ttk.Button(root, text="start").place(x=BTN_X, y=360)
 ttk.Button(root, text="pause").place(x=BTN_X, y=400)
 ttk.Button(root, text="stop").place(x=BTN_X, y=440)
 
-# ============================================================
-# MODE / CYCLES / STATUS
-# ============================================================
 BLOCK_Y = 520
 
 ttk.Label(root, text="mode").place(x=COL_X_LABEL, y=BLOCK_Y)
@@ -552,9 +642,7 @@ ttk.Entry(textvariable=cycles_var, width=8).place(x=COL_X_ENTRY + 30, y=BLOCK_Y 
 ttk.Label(root, text="status").place(x=COL_X_LABEL, y=BLOCK_Y + 80)
 ttk.Entry(textvariable=status_var, state="readonly", width=24).place(x=COL_X_ENTRY + 30, y=BLOCK_Y + 80)
 
-# ============================================================
-# hardware (optional)
-# ============================================================
+#                                           connect to devices
 dev = None
 if HAVE_DEVICES:
     try:
@@ -569,14 +657,11 @@ else:
 if dev is None:
     ttk.Label(root, text="(demo: no motors)", foreground="red").place(x=COL_X_LABEL, y=BLOCK_Y + 120)
 
-# ============================================================
-# scanner
-# ============================================================
 scanner = Scanner(root, pos_canvas, detector_item, green_item, scan_item,
                   x_var, y_var, xstep_var, ystep_var, t_var, cycles_var,
                   status_var, modes_var, posx_label, posy_label, time_label, dev=dev)
 
-# attach commands to buttons
+#                                       check actions
 for child in root.winfo_children():
     if isinstance(child, ttk.Button):
         txt = child.cget("text")
@@ -588,14 +673,11 @@ for child in root.winfo_children():
             child.config(command=scanner.stop)
 
 scanner.update_geometry()
-
 scanner.cur_x, scanner.cur_y = scanner.center_position()
 scanner.draw_detector(scanner.cur_x, scanner.cur_y)
 
 x_var.trace_add("write", lambda *_: scanner.update_geometry())
 y_var.trace_add("write", lambda *_: scanner.update_geometry())
 
-# ============================================================
-# run
-# ============================================================
+#                                       program start
 root.mainloop()

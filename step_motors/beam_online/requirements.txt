@@ -1,0 +1,9 @@
+configparser==7.3.0
+future==1.0.0
+iso8601==2.1.0
+numpy==2.5.4
+pyepics==3.5.10
+pyparsing==3.3.3
+pyserial==3.5
+PyYAML==6.0.3
+serial==0.0.97
