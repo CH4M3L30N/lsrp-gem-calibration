@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-Combined scanner: GUI animation + stepper-motor control + live heatmap.
+Program scans reversed compton laser beam, has two windows:
+  current scanning preview (upper canvas)
+  current data preview (lower canvas)
+  
+also shows remaining time after 10 steps
 
 Buttons:
-  start -- moves detector to top-left corner (Wait), then scans
+  start -- moves detector to top-left corner (Wait), then scans, also resumes scan after pause
   pause -- pauses scanning
   stop  -- returns detector to the center of the green zone
-
-Position (in GUI) is measured from the top-left corner of the scan zone (0, 0)
-in MOTOR STEPS (1 step = MP px in GUI).
-
-Bottom canvas: heatmap of a 20x32 array (zeros for now).
+  
+saves data only if step finished before data collection
 """
 
 from tkinter import *
@@ -38,35 +39,43 @@ except ImportError:
 # devices.py reads settings.cfg by relative path
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# ----------------------------- constants -----------------------------
+# global constants
+
+# canvas real size
 CAN_WIDTH       = 370
 CAN_HEIGHT      = 300
-MP              = 4
 
+MP              = 4 # multiplier for all things in the app (to count in pads and not pixels)
+
+# detector size
 DETECTOR_WIDTH  = 32 * MP
 DETECTOR_HEIGHT = 20 * MP
+
+# laser size
 GREEN_WIDTH     = 20 * MP
 GREEN_HEIGHT    = 10 * MP
 
-HEAT_COLS       = 32
-HEAT_ROWS       = 20
-
 # all sizes in the program are in pads; pad size in mm (x, y)
-PAD_MM = (2.0, 1.0)
 PADS_X, PADS_Y = 32, 20
-
-SCALE = [1, 2]   # mm per motor step (fallback if devices not available)
+SCALE = [2., 1.]   # mm per motor step (fallback if devices not available)
 
 # ----------------------------- Scanner -----------------------------
 class Scanner:
     def __init__(self, root, canvas, detector_item, green_item, scan_item,
                  x_var, y_var, xstep_var, ystep_var, t_var, cycles_var,
                  status_var, modes_var, posx_label, posy_label, time_label, dev=None):
+        
+        # variables for scanning
+        # basic app parameters
         self.root = root
         self.canvas = canvas
+        
+        # painted zones (upper canvas)
         self.detector_item = detector_item
         self.green_item = green_item
         self.scan_item = scan_item
+        
+        # changable parameters
         self.x_var = x_var
         self.y_var = y_var
         self.xstep_var = xstep_var
@@ -75,18 +84,21 @@ class Scanner:
         self.cycles_var = cycles_var
         self.status_var = status_var
         self.modes_var = modes_var
+        
+        # scanning parameters
         self.posx_label = posx_label
         self.posy_label = posy_label
         self.time_label = time_label
         self.dev = dev
+        self.position  = 0
+        self.path      = []
+        self.after_id  = None
 
+        # statuses of the scanning
         self.running   = False
         self.paused    = False
         self.returning = False
         self.waiting   = False
-        self.position  = 0
-        self.path      = []
-        self.after_id  = None
 
         # timing
         self.step_times = []
@@ -104,10 +116,7 @@ class Scanner:
         self.scan_w  = 0.0
         self.scan_h  = 0.0
 
-        # ----------------------------- hardware reference -----------------------------
-        # Equipment: the support position at program start = detector center on the beam
-        # (center of the scan zone); set in advance via detector_support.
-        # This mirrors nik_scan_app.py.
+        # configuring devices
         self.ref_x = None
         self.ref_y = None
         self.motor_scale = SCALE
@@ -121,7 +130,7 @@ class Scanner:
             print(f"Device connected: x = {self.ref_x}, y = {self.ref_y}, "
                   f"SCALE = {self.motor_scale}")
 
-        # EPICS PV for save_data (same as nik_scan_app.py)
+        # data collection
         self.pv = None
         if HAVE_EPICS:
             try:
@@ -177,8 +186,8 @@ class Scanner:
         dx = (cx - self.scan_w / 2) / MP       # detector center offset from beam, pads
         dy = (cy - self.scan_h / 2) / MP       # canvas: y down, support: y up
         sc = self.motor_scale
-        tx = self.ref_x + int(round(dx * PAD_MM[0] / sc[0]))
-        ty = self.ref_y - int(round(dy * PAD_MM[1] / sc[1]))
+        tx = self.ref_x + int(round(dx * SCALE[0] / sc[0]))
+        ty = self.ref_y - int(round(dy * SCALE[1] / sc[1]))
         t_move = time.time()
         try:
             self.dev.move_to(tx, ty)
@@ -478,7 +487,7 @@ detector_item = pos_canvas.create_rectangle(0, 0, 1, 1, fill="grey")
 heat_canvas = Canvas(bg="white", width=CAN_WIDTH, height=CAN_HEIGHT)
 heat_canvas.place(x=10, y=320)
 
-heat_data = [[0.0] * HEAT_COLS for _ in range(HEAT_ROWS)]
+heat_data = [[0.0] * PADS_X for _ in range(PADS_Y)]
 draw_heatmap(heat_canvas, heat_data)
 
 # ============================================================

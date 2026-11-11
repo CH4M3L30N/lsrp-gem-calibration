@@ -1,3 +1,0 @@
-# axis fwhm_px fwhm_mm left_px right_px half_max
-x 8.190259 nan 11.383882 19.574141 1.479866e+02
-y 9.011875 nan 6.207039 15.218914 1.459437e+02
