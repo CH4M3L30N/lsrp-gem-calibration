@@ -29,7 +29,7 @@ import scipy.stats
 from scipy.ndimage import gaussian_filter, laplace
 
 # ----------------------------- параметры -----------------------------
-DATA_FILE         = "data/data20261109_143025.txt"   # <-- имя файла
+DATA_FILE         = "data/data20261111_133810.txt"   # <-- имя файла
 REAL_EPS_FILE     = "epsilon_real.txt"
 
 PADS_X            = 32

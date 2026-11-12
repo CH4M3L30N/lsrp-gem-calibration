@@ -20,13 +20,11 @@ import scipy.stats
 from scipy.ndimage import gaussian_filter
 
 # ----------------------------- параметры -----------------------------
-FILE_NAME         = "data/data"
-CENTER_FILE       = "data/centers.txt"
+DATA_FILE         = "data/data20261109_143025.txt"   # <-- имя файла
 REAL_EPS_FILE     = "epsilon_real.txt"
 
 PADS_X            = 32
 PADS_Y            = 20
-TIME_SIZE         = 693
 CX                = PADS_X // 2   # 16
 CY                = PADS_Y // 2   # 10
 
@@ -40,6 +38,7 @@ TOL_EPS           = 1e-3
 data = []
 centers = []
 timestamps = []
+I_0 = 0.
 
 if not os.path.exists(DATA_FILE):
     raise FileNotFoundError(DATA_FILE)
@@ -61,8 +60,11 @@ with open(DATA_FILE, "r") as f:
         I             = float(parts[4])
         c_x           = int(parts[5])
         c_y           = int(parts[6])
+        
+        if I_0 < 0.000001:
+            I_0 = I
 
-        data_flat = np.array([int(v) for v in parts[7:7+PADS_X*PADS_Y]], dtype=float)
+        data_flat = np.array([(int(v) / I * I_0) for v in parts[7:7+PADS_X*PADS_Y]], dtype=float)
         frame = data_flat.reshape((PADS_Y, PADS_X))
 
         data.append(frame)
@@ -76,27 +78,6 @@ if TIME_SIZE == 0:
 
 print(f"Read {TIME_SIZE} frames from {DATA_FILE}")
 data = np.array(data)   # (TIME_SIZE, PADS_Y, PADS_X)
-
-# ----------------------------- чтение центров -----------------------------
-# centers.txt: <x> <y>   (y -- СНИЗУ ВВЕРХ, data[t][y] -- СВЕРХУ ВНИЗ)
-center = []
-with open(CENTER_FILE, "r") as f:
-    for line in f:
-        ln = line.strip()
-        if not ln:
-            continue
-        parts = ln.split()
-        if len(parts) < 2:
-            continue
-        xs, ys_raw = int(parts[0]), int(parts[1])
-        cxt = xs
-        cyt = PADS_Y - 1 - ys_raw
-        center.append((cxt, cyt))
-
-if len(center) != TIME_SIZE:
-    print(f"WARNING: len(center) = {len(center)} != TIME_SIZE = {TIME_SIZE}")
-print(f"len(center) = {len(center)}, center[0] = {center[0]}, "
-      f"center[-1] = {center[-1]}")
 
 # ----------------------------- маски -----------------------------
 mask_t = np.zeros((TIME_SIZE, PADS_Y, PADS_X), dtype=bool)

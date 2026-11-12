@@ -1,0 +1,4 @@
+sigma_x_px 5.461824
+sigma_y_px 4.322160
+sigma_x_mm 10.923649
+sigma_y_mm 4.322160
