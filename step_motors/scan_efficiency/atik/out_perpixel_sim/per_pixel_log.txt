@@ -1,0 +1,14 @@
+Read data/sim_data.txt
+  frames=693, I0=1.5000
+  c_x: mean=16.00, min=0, max=32
+  c_y: mean=10.00, min=0, max=20
+V: гауссова σ=(3.0, 2.0), A=1.0
+
+=== per-pixel eps ===
+A_t: median=663.210, min=576.702, max=727.359
+восстановлено пикселей: 640 / 640
+eps_pixel: min=0.6548, max=1.3674, mean=1.0020, std=0.1885
+
+=== сравнение с epsilon_real.txt ===
+compare(per-pixel, real): n=640, corr=0.99562, rms(diff)=1.7796e-02, median(diff)=-2.3572e-04, std(diff)=1.7688e-02
+compare(real, per-pixel): n=640, corr=0.99562, rms(diff)=1.7796e-02, median(diff)=+2.3572e-04, std(diff)=1.7688e-02

@@ -1,0 +1,13 @@
+Read data/data20261112_153801.txt
+  frames=693, I0=1.5140
+  c_x: mean=15.95, min=0, max=32
+  c_y: mean=9.97, min=0, max=20
+V: гауссова σ=(3.0, 2.0), A=1.0
+
+=== per-pixel eps ===
+A_t: median=1411.371, min=487.802, max=2890.851
+восстановлено пикселей: 621 / 640
+eps_pixel: min=0.4325, max=2.5984, mean=1.0616, std=0.2715
+
+=== сравнение с out_real_nodetrend/epsilon.txt ===
+compare(per-pixel, get_epsilon): n=621, corr=0.21002, rms(diff)=2.8503e-01, median(diff)=+4.9214e-02, std(diff)=2.7717e-01

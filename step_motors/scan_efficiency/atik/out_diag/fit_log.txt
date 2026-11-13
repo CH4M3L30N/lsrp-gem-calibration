@@ -1,0 +1,136 @@
+Read 693 frames (skipped 0)
+c_x: mean=15.95 std=9.52 min=0 max=32
+c_y: mean=9.97 std=6.06 min=0 max=20
+
+=== center diagnostics: argmax(data) - (c_x, c_y) ===
+полных кадров (пучок внутри, пик выше фона): 0 / 693
+WARNING: нет полных кадров — center-offset auto невозможен
+
+=== zero diagnostics ===
+пикселей с нулём во ВСЕХ кадрах (кандидаты в мёртвые): 19
+пикселей с нулём в НЕКОТОРЫХ кадрах (выпадения): 133
+  (x=0, y=0): n_zero=5/693
+  (x=1, y=0): n_zero=1/693
+  (x=2, y=0): n_zero=2/693
+  (x=3, y=0): n_zero=3/693
+  (x=4, y=0): n_zero=2/693
+  (x=6, y=0): n_zero=2/693
+  (x=8, y=0): n_zero=1/693
+  (x=9, y=0): n_zero=2/693
+  (x=31, y=0): n_zero=1/693
+  (x=0, y=1): n_zero=5/693
+  ... ещё 123 пикселей
+
+center-offset mode=none: применяю dx=+0.000, dy=+0.000
+mask: n_valid center = 569, valid pixels = 639 / 640
+dead: стартовая маска пуста
+
+=== fit M12 (param_V=True, sum2v=True, refit_V=True, warmup_V=2, lambda_theta=1.0, detrend_order=plane, gamma_min=0.1, robust=True, fit_bg=True) ===
+fit points: M = 254703 / 443520 (57.4%)
+V_emp 2D (init): shape=(29, 29), bins with data: 697 / 841
+V center offset: dx=1.00, dy=1.00
+  V params fit (sum2v): cost=6.410e-01, rms_resid=4.1556e-02, A=2.789, sx1=2.80, sy1=2.87, theta=16.04°, eta=0.786, gamma=3.471, sx2=4.86, sy2=6.71, w=0.885
+V_tab: max=0.997, mean=0.251
+  it  0: loss=7.3025e+06 d_loss=0.00e+00 dead=0 b_mean=1.050e+01 b_min=-7.083e+01 time=0.03s
+  it  0: dead += 10 → 10
+  V params fit (sum2v): cost=5.664e-01, rms_resid=2.1254e-03, A=0.195, sx1=20.00, sy1=20.00, theta=0.00°, eta=1.000, gamma=10.000, sx2=0.50, sy2=0.50, w=1.000
+    WARNING: sigma1 at upper bound (20)
+  it  0: V refit (warmup 1/2)
+  it  1: loss=1.6575e+07 d_loss=1.27e+00 dead=10 b_mean=2.422e+01 b_min=-8.351e+01 time=2.43s
+  it  1: dead += 4 → 14
+  V params fit (sum2v): cost=6.750e+13, rms_resid=2.3274e+04, A=39889.469, sx1=20.00, sy1=2.04, theta=-28.55°, eta=1.000, gamma=4.292, sx2=0.50, sy2=0.50, w=1.000
+    WARNING: sigma1 at upper bound (20)
+  it  1: V refit (warmup 2/2)
+  it  2: loss=1.1865e+07 d_loss=2.84e-01 dead=14 b_mean=1.863e+01 b_min=-8.222e+01 time=10.29s
+  it  2: dead += 5 → 19
+  it  2: V_params FROZEN
+  it  3: loss=1.1456e+07 d_loss=3.45e-02 dead=19 b_mean=1.655e+01 b_min=-7.412e+01 time=10.33s
+  it  3: dead += 9 → 28
+  it  4: loss=1.1403e+07 d_loss=4.59e-03 dead=28 b_mean=1.469e+01 b_min=-8.306e+01 time=10.36s
+  it  4: dead += 13 → 41
+  it  5: loss=1.1596e+07 d_loss=1.69e-02 dead=41 b_mean=1.212e+01 b_min=-8.710e+01 time=10.40s
+  it  5: dead += 11 → 52
+  it  6: loss=1.1882e+07 d_loss=2.47e-02 dead=52 b_mean=9.714e+00 b_min=-8.844e+01 time=10.43s
+  it  6: dead += 13 → 65
+  it  7: loss=1.2251e+07 d_loss=3.11e-02 dead=65 b_mean=7.041e+00 b_min=-8.724e+01 time=10.46s
+  it  7: dead += 11 → 76
+  it  8: loss=1.2599e+07 d_loss=2.84e-02 dead=76 b_mean=4.570e+00 b_min=-8.481e+01 time=10.50s
+  it  8: dead += 8 → 84
+  it  9: loss=1.2885e+07 d_loss=2.27e-02 dead=84 b_mean=2.721e+00 b_min=-8.350e+01 time=10.53s
+  it  9: dead += 9 → 93
+fit time: 10.53s
+
+=== V(r) model vs V_emp(r) ===
+       r        V_emp  V_model·scale      ratio
+    0.25   7.7849e+02     3.7917e+02      0.487
+    1.25   7.3368e+02     3.7567e+02      0.512
+    2.25   6.4592e+02     3.6857e+02      0.571
+    3.25   5.4008e+02     3.5802e+02      0.663
+    4.25   4.1391e+02     3.4254e+02      0.828
+    5.25   3.3149e+02     3.2849e+02      0.991
+    6.25   2.5315e+02     3.1054e+02      1.227
+    7.25   2.0287e+02     2.9534e+02      1.456
+    8.25   1.6222e+02     2.7860e+02      1.717
+    9.25   1.2763e+02     2.6193e+02      2.052
+   10.25   1.0714e+02     2.4756e+02      2.311
+   11.25   8.7985e+01     2.3345e+02      2.653
+   12.25   7.5212e+01     2.2177e+02      2.949
+   13.25   6.4718e+01     2.0956e+02      3.238
+   14.25   4.7748e+01     2.0176e+02      4.226
+
+=== диагностика остатков ===
+rms = 1.9352e+02, max|r| = 1.4976e+03, sigma_MAD = 7.0553e+01
+frac(|r|>3·rms) = 2.919%, frac(|r|>5·rms) = 0.086%
+frac(|r|>3·σ_MAD) = 16.293%, frac(|r|>5·σ_MAD) = 9.169%
+χ²_w/M = 5.1533e+01
+χ²: total = 1.3126e+07, outliers(|r|>5·rms) = 4.6422e+04 (0.4% от χ²)
+Wf/Wf_base: median = 1.000, min = 1.422e-01
+b: mean = 1.1099e+00, max = 1.2746e+02, min = -8.3260e+01, median = 0.0000e+00
+
+=== топ-10 пикселей по mean|resid| ===
+   x    y      mean|r|       mean_r      n        eps          b dead
+  31   11   3.2124e+02   3.2124e+02    314  0.000e+00  0.000e+00    1
+  29   11   2.8913e+02   2.8913e+02    356  0.000e+00  0.000e+00    1
+  28   12   2.7093e+02   2.7093e+02    374  0.000e+00  0.000e+00    1
+   4   19   2.7014e+02   2.7014e+02    268  0.000e+00  0.000e+00    1
+   2   19   2.6153e+02   2.6153e+02    236  0.000e+00  0.000e+00    1
+   2   17   2.5496e+02   2.5496e+02    270  0.000e+00  0.000e+00    1
+   4   18   2.5234e+02   2.5234e+02    287  0.000e+00  0.000e+00    1
+   6   17   2.4680e+02   2.4680e+02    341  0.000e+00  0.000e+00    1
+   4   17   2.3593e+02   2.3593e+02    306  0.000e+00  0.000e+00    1
+   4   15   2.3588e+02   2.3588e+02    344  0.000e+00  0.000e+00    1
+
+=== топ-10 пикселей по |mean_resid| (смещение) ===
+  31   11 mean_r=  3.2124e+02 mean|r|=  3.2124e+02 n=   314 eps= 0.000e+00 b= 0.000e+00
+  29   11 mean_r=  2.8913e+02 mean|r|=  2.8913e+02 n=   356 eps= 0.000e+00 b= 0.000e+00
+  28   12 mean_r=  2.7093e+02 mean|r|=  2.7093e+02 n=   374 eps= 0.000e+00 b= 0.000e+00
+   4   19 mean_r=  2.7014e+02 mean|r|=  2.7014e+02 n=   268 eps= 0.000e+00 b= 0.000e+00
+   2   19 mean_r=  2.6153e+02 mean|r|=  2.6153e+02 n=   236 eps= 0.000e+00 b= 0.000e+00
+   2   17 mean_r=  2.5496e+02 mean|r|=  2.5496e+02 n=   270 eps= 0.000e+00 b= 0.000e+00
+   4   18 mean_r=  2.5234e+02 mean|r|=  2.5234e+02 n=   287 eps= 0.000e+00 b= 0.000e+00
+   6   17 mean_r=  2.4680e+02 mean|r|=  2.4680e+02 n=   341 eps= 0.000e+00 b= 0.000e+00
+   4   17 mean_r=  2.3593e+02 mean|r|=  2.3593e+02 n=   306 eps= 0.000e+00 b= 0.000e+00
+   4   15 mean_r=  2.3588e+02 mean|r|=  2.3588e+02 n=   344 eps= 0.000e+00 b= 0.000e+00
+
+=== σ_stat (kfold K=4) ===
+kfold(4): median σ_stat = 2.059e-02 (нефинитных: 0)
+σ_stat = nan для r > 14.0: 134 пикселей
+dead: уточнено по σ_stat: 93 → 99
+
+(real_eps не найден)
+
+=== beam σ (по P_avg, с вычетом пьедестала) ===
+x: σ=6.3317px  mean=14.608  bg=7.610e+01
+y: σ=3.6784px  mean=6.608  bg=1.105e+02
+
+=== V параметры (сумма 2 Voigt) ===
+A = 3.988947e+04
+σx1 = 20.0000 px
+σy1 = 2.0405 px
+θ = -28.546°
+η (доля Коши) = 1.0000
+γ (ширина Коши) = 4.2924
+σx2 = 0.5000 px (широкий Гаусс)
+σy2 = 0.5000 px (широкий Гаусс)
+w = 1.0000 (вес Voigt)
+центр: dx = 1.000, dy = 1.000

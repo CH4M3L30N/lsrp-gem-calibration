@@ -1,0 +1,95 @@
+Read 693 frames (skipped 0)
+c_x: mean=15.95 std=9.52 min=0 max=32
+c_y: mean=9.97 std=6.06 min=0 max=20
+
+=== smooth-argmax: полных кадров 448 / 693 (inside=448) ===
+smooth-argmax: δx mean=+0.834 std=1.213 min=-2.00 max=+5.00
+smooth-argmax: δy mean=+0.652 std=0.647 min=+0.00 max=+2.00
+smooth-argmax: центры обновлены (c_x[t] += δx[t])
+
+=== center diagnostics: argmax(data) - (c_x, c_y) ===
+полных кадров: 404 / 693
+dx: mean=+0.084  std=0.943  min=-2  max=+3
+dy: mean=+0.054  std=0.709  min=-3  max=+3
+
+=== zero diagnostics ===
+пикселей с нулём во ВСЕХ кадрах: 19
+пикселей с нулём в НЕКОТОРЫХ кадрах: 133
+
+center-offset mode=smooth-argmax: применяю dx=+0.000, dy=+0.000
+mask: n_valid center = 554, valid pixels = 632 / 640
+dead: из данных (нуль во всех 693 кадрах) = 19; итоговая стартовая маска = 19
+
+=== fit M12 (param_V=False, sum2v=True, refit_V=True, warmup_V=2, lambda_theta=1.0, detrend=none, gamma_min=0.1, robust=True, fit_bg=True, zero_weight_mode=one) ===
+fit points: M = 248022 / 443520 (55.9%)
+V_emp 2D (init): shape=(31, 31), bins with data: 745 / 961
+V center offset: dx=0.00, dy=0.00
+V_tab: max=1.000, mean=0.246
+dead: стартовая маска = 19 пикселей
+  it  0: loss=1.2374e+06 d_loss=0.00e+00 dead=19 b_mean=1.611e+00 b_min=-1.327e+01 time=0.04s
+  it  0: dead += 3 → 22
+  it  1: loss=1.2311e+06 d_loss=5.12e-03 dead=22 b_mean=2.046e+00 b_min=-1.530e+01 time=0.07s
+  it  2: loss=1.2321e+06 d_loss=8.07e-04 dead=22 b_mean=2.285e+00 b_min=-1.600e+01 time=0.10s
+  it  3: loss=1.2326e+06 d_loss=4.48e-04 dead=22 b_mean=2.415e+00 b_min=-1.630e+01 time=0.14s
+  it  4: loss=1.2327e+06 d_loss=8.38e-05 dead=22 b_mean=2.490e+00 b_min=-1.644e+01 time=0.17s
+  it  5: loss=1.2328e+06 d_loss=8.12e-05 dead=22 b_mean=2.534e+00 b_min=-1.653e+01 time=0.20s
+  it  6: loss=1.2331e+06 d_loss=1.84e-04 dead=22 b_mean=2.562e+00 b_min=-1.658e+01 time=0.23s
+  it  7: loss=1.2333e+06 d_loss=1.45e-04 dead=22 b_mean=2.580e+00 b_min=-1.662e+01 time=0.27s
+  it  8: loss=1.2333e+06 d_loss=7.26e-05 dead=22 b_mean=2.592e+00 b_min=-1.665e+01 time=0.30s
+  it  9: loss=1.2334e+06 d_loss=4.06e-05 dead=22 b_mean=2.600e+00 b_min=-1.667e+01 time=0.33s
+  it 10: loss=1.2334e+06 d_loss=2.26e-05 dead=22 b_mean=2.606e+00 b_min=-1.668e+01 time=0.37s
+  it 11: loss=1.2334e+06 d_loss=8.16e-07 dead=22 b_mean=2.610e+00 b_min=-1.669e+01 time=0.40s
+converged at it 11 (d_loss=8.16e-07)
+fit time: 0.40s
+
+=== V(r) model vs V_emp(r) ===
+       r        V_emp  V_model·scale      ratio
+    0.25   8.1844e+02     8.0649e+02      0.985
+    1.25   7.5550e+02     7.5176e+02      0.995
+    2.25   6.7115e+02     6.6893e+02      0.997
+    3.25   5.5128e+02     5.5518e+02      1.007
+    4.25   4.2206e+02     4.2587e+02      1.009
+    5.25   3.3211e+02     3.3808e+02      1.018
+    6.25   2.5277e+02     2.5720e+02      1.018
+    7.25   2.0181e+02     2.0677e+02      1.025
+    8.25   1.6240e+02     1.6652e+02      1.025
+    9.25   1.2781e+02     1.3052e+02      1.021
+   10.25   1.0696e+02     1.0958e+02      1.024
+   11.25   8.8659e+01     9.0353e+01      1.019
+   12.25   7.5915e+01     7.7341e+01      1.019
+   13.25   6.5417e+01     6.5965e+01      1.008
+   14.25   5.6853e+01     5.7279e+01      1.007
+
+=== диагностика остатков ===
+rms = 5.1412e+01, max|r| = 6.1588e+02, sigma_MAD = 2.1422e+01
+frac(|r|>3·rms) = 2.464%, frac(|r|>5·rms) = 0.449%
+frac(|r|>3·σ_MAD) = 12.114%, frac(|r|>5·σ_MAD) = 5.513%
+χ²_w/M = 4.9730e+00
+χ²: total = 1.2334e+06, outliers(|r|>5·rms) = 3.2905e+04 (2.7% от χ²)
+Wf/Wf_base: median = 1.000, min = 0.000e+00
+b: mean = 2.6116e+00, max = 5.1501e+01, min = -1.6697e+01, median = 0.0000e+00
+
+=== топ-10 пикселей по mean|resid| ===
+   x    y      mean|r|       mean_r      n        eps          b dead
+   1    2   1.0387e+02   9.3574e+01    203  5.637e-01  5.127e+01    0
+   2   17   7.7130e+01   6.5648e+01    254  8.780e-01  2.709e+01    0
+   4    7   6.9586e+01   5.7594e+01    344  1.369e+00  2.261e+01    0
+   0    4   6.9278e+01   5.3185e+01    219  6.781e-01  3.014e+01    0
+   5   11   6.4402e+01   4.1310e+01    378  1.288e+00  1.340e+01    0
+  31   19   6.4010e+01   3.0038e+01    247  1.249e+00  6.704e+00    0
+   0    3   6.3991e+01   5.0695e+01    201  6.083e-01  3.006e+01    0
+   4   19   6.3176e+01   3.1934e+01    255  1.181e+00  9.683e+00    0
+  26   11   6.1351e+01   3.5856e+01    441  1.162e+00  8.769e+00    0
+  22    0   6.0359e+01   4.7920e+01    310  7.136e-01  5.150e+01    0
+
+=== σ_stat (kfold K=4) ===
+kfold(4): median σ_stat = 2.266e-02 (нефинитных: 0)
+σ_stat = nan для r > 14.0: 134 пикселей
+
+[compare] corr = -0.02228
+[compare] rms(diff) = 2.215e-01
+[compare] χ² = 358411.18, n_good = 493, χ²/n = 727.000, scale = 26.990
+
+=== beam σ (по P_avg, с вычетом пьедестала) ===
+x: σ=6.5352px  mean=19.119  bg=9.726e+01
+y: σ=3.8614px  mean=10.488  bg=1.053e+02

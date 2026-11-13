@@ -553,11 +553,10 @@ def draw_heatmap(canvas, data_2d):
     for i in range(rows):
         for j in range(cols):
             v = data_2d[i][j] / vmax
-            r = int(255 * v)
-            b = int(255 * (1 - v))
-            color = f"#{r:02x}00{b:02x}"
+            b = int(255 * (v))
+            color = f"#{b:02x}{b:02x}{b:02x}"
             x0 = (cols - 1 - j) * cell_w    # flip x для heatmap
-            y0 = i * cell_h
+            y0 = (rows - 1 - i) * cell_h
             canvas.create_rectangle(x0, y0, x0 + cell_w, y0 + cell_h,
                                     fill=color, outline="", tags="heat")
 

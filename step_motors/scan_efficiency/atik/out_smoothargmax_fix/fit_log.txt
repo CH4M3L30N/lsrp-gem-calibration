@@ -1,0 +1,179 @@
+Read 693 frames (skipped 0)
+c_x: mean=15.95 std=9.52 min=0 max=32
+c_y: mean=9.97 std=6.06 min=0 max=20
+
+=== smooth-argmax: полных кадров 448 / 693 (inside=448) ===
+smooth-argmax: δx mean=+0.834 std=1.213 min=-2.00 max=+5.00
+smooth-argmax: δy mean=+0.652 std=0.647 min=+0.00 max=+2.00
+smooth-argmax: центры обновлены (c_x[t] += δx[t])
+
+=== center diagnostics: argmax(data) - (c_x, c_y) ===
+полных кадров (пучок внутри, пик выше фона): 404 / 693
+dx: mean=+0.084  std=0.943  min=-2  max=+3
+dy: mean=+0.054  std=0.709  min=-3  max=+3
+dx histogram: -2:15, -1:86, +0:183, +1:93, +2:24, +3:3
+dy histogram: -3:1, -2:7, -1:42, +0:293, +1:43, +2:16, +3:2
+
+=== zero diagnostics ===
+пикселей с нулём во ВСЕХ кадрах (кандидаты в мёртвые): 19
+пикселей с нулём в НЕКОТОРЫХ кадрах (выпадения): 133
+  (x=0, y=0): n_zero=5/693
+  (x=1, y=0): n_zero=1/693
+  (x=2, y=0): n_zero=2/693
+  (x=3, y=0): n_zero=3/693
+  (x=4, y=0): n_zero=2/693
+  (x=6, y=0): n_zero=2/693
+  (x=8, y=0): n_zero=1/693
+  (x=9, y=0): n_zero=2/693
+  (x=31, y=0): n_zero=1/693
+  (x=0, y=1): n_zero=5/693
+  ... ещё 123 пикселей
+
+center-offset mode=smooth-argmax: применяю dx=+0.000, dy=+0.000
+mask: n_valid center = 554, valid pixels = 632 / 640
+dead: авто-детекция по eps отключена (dead_thresh_eps=0), используется только маска из данных
+dead: файл маски не задан/не найден
+dead: из данных (нуль во всех 693 кадрах) = 19; итоговая стартовая маска = 19
+
+=== fit M12 (param_V=True, sum2v=True, refit_V=True, warmup_V=-1, lambda_theta=0.0, detrend_order=plane, gamma_min=0.1, robust=True, fit_bg=True) ===
+fit points: M = 248022 / 443520 (55.9%)
+V_emp 2D (init): shape=(31, 31), bins with data: 745 / 961
+V center offset: dx=0.00, dy=0.00
+  V params fit (sum2v): cost=4.812e-01, rms_resid=3.5942e-02, A=5.445, sx1=2.59, sy1=3.00, theta=29.50°, eta=0.897, gamma=7.186, sx2=4.73, sy2=6.08, w=0.929
+V_tab: max=0.993, mean=0.246
+dead: стартовая маска = 19 пикселей
+  it  0: loss=2.9510e+06 d_loss=0.00e+00 dead=19 b_mean=-5.779e-01 b_min=-5.608e+01 time=0.03s
+  V params fit (sum2v): cost=5.023e-02, rms_resid=6.4507e-04, A=1.121, sx1=3.34, sy1=3.19, theta=3.63°, eta=0.758, gamma=0.100, sx2=3.91, sy2=7.72, w=0.760
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  0: V refit (warmup ∞)
+  it  1: loss=3.2136e+06 d_loss=8.90e-02 dead=19 b_mean=1.470e+01 b_min=-2.112e+01 time=3.86s
+  V params fit (sum2v): cost=5.376e-02, rms_resid=6.6733e-04, A=1.182, sx1=3.13, sy1=3.08, theta=1.22°, eta=0.711, gamma=0.100, sx2=4.07, sy2=7.87, w=0.793
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  1: V refit (warmup ∞)
+  it  2: loss=3.1561e+06 d_loss=1.79e-02 dead=19 b_mean=1.990e+01 b_min=-1.370e+01 time=5.98s
+  V params fit (sum2v): cost=7.393e-02, rms_resid=7.8261e-04, A=1.226, sx1=3.13, sy1=3.10, theta=0.60°, eta=0.715, gamma=0.100, sx2=4.13, sy2=7.93, w=0.793
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  2: V refit (warmup ∞)
+  it  3: loss=3.1408e+06 d_loss=4.83e-03 dead=19 b_mean=2.078e+01 b_min=-1.282e+01 time=7.74s
+  V params fit (sum2v): cost=9.469e-02, rms_resid=8.8570e-04, A=1.270, sx1=3.18, sy1=3.16, theta=0.47°, eta=0.717, gamma=0.100, sx2=4.14, sy2=7.99, w=0.789
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  3: V refit (warmup ∞)
+  it  4: loss=3.1345e+06 d_loss=2.03e-03 dead=19 b_mean=2.063e+01 b_min=-1.326e+01 time=8.90s
+  V params fit (sum2v): cost=1.138e-01, rms_resid=9.7078e-04, A=1.326, sx1=3.23, sy1=3.21, theta=0.46°, eta=0.714, gamma=0.100, sx2=4.14, sy2=8.02, w=0.787
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  4: V refit (warmup ∞)
+  it  5: loss=3.1328e+06 d_loss=5.18e-04 dead=19 b_mean=2.041e+01 b_min=-1.361e+01 time=10.18s
+  V params fit (sum2v): cost=1.316e-01, rms_resid=1.0443e-03, A=1.395, sx1=3.26, sy1=3.24, theta=0.46°, eta=0.711, gamma=0.100, sx2=4.14, sy2=8.04, w=0.786
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  5: V refit (warmup ∞)
+  it  6: loss=3.1332e+06 d_loss=1.02e-04 dead=19 b_mean=2.030e+01 b_min=-1.381e+01 time=11.20s
+  V params fit (sum2v): cost=1.497e-01, rms_resid=1.1135e-03, A=1.473, sx1=3.27, sy1=3.26, theta=0.46°, eta=0.710, gamma=0.100, sx2=4.14, sy2=8.05, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  6: V refit (warmup ∞)
+  it  7: loss=3.1333e+06 d_loss=4.91e-05 dead=19 b_mean=2.026e+01 b_min=-1.391e+01 time=11.98s
+  V params fit (sum2v): cost=1.691e-01, rms_resid=1.1835e-03, A=1.557, sx1=3.28, sy1=3.26, theta=0.46°, eta=0.709, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  7: V refit (warmup ∞)
+  it  8: loss=3.1337e+06 d_loss=1.29e-04 dead=19 b_mean=2.025e+01 b_min=-1.397e+01 time=12.64s
+  V params fit (sum2v): cost=1.903e-01, rms_resid=1.2557e-03, A=1.648, sx1=3.28, sy1=3.27, theta=0.46°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  8: V refit (warmup ∞)
+  it  9: loss=3.1338e+06 d_loss=3.16e-05 dead=19 b_mean=2.025e+01 b_min=-1.399e+01 time=13.29s
+  V params fit (sum2v): cost=2.140e-01, rms_resid=1.3315e-03, A=1.745, sx1=3.28, sy1=3.27, theta=0.46°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it  9: V refit (warmup ∞)
+  it 10: loss=3.1339e+06 d_loss=3.11e-05 dead=19 b_mean=2.026e+01 b_min=-1.401e+01 time=13.93s
+  V params fit (sum2v): cost=2.404e-01, rms_resid=1.4113e-03, A=1.848, sx1=3.28, sy1=3.27, theta=0.45°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it 10: V refit (warmup ∞)
+  it 11: loss=3.1340e+06 d_loss=2.62e-05 dead=19 b_mean=2.026e+01 b_min=-1.402e+01 time=14.45s
+  V params fit (sum2v): cost=2.699e-01, rms_resid=1.4953e-03, A=1.957, sx1=3.28, sy1=3.27, theta=0.45°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it 11: V refit (warmup ∞)
+  it 12: loss=3.1341e+06 d_loss=2.13e-05 dead=19 b_mean=2.026e+01 b_min=-1.403e+01 time=14.97s
+  V params fit (sum2v): cost=3.029e-01, rms_resid=1.5841e-03, A=2.072, sx1=3.28, sy1=3.27, theta=0.45°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it 12: V refit (warmup ∞)
+  it 13: loss=3.1341e+06 d_loss=6.62e-06 dead=19 b_mean=2.026e+01 b_min=-1.403e+01 time=15.50s
+  V params fit (sum2v): cost=3.399e-01, rms_resid=1.6780e-03, A=2.194, sx1=3.28, sy1=3.27, theta=0.45°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it 13: V refit (warmup ∞)
+  it 14: loss=3.1340e+06 d_loss=1.47e-05 dead=19 b_mean=2.026e+01 b_min=-1.403e+01 time=16.03s
+  V params fit (sum2v): cost=3.814e-01, rms_resid=1.7774e-03, A=2.324, sx1=3.28, sy1=3.27, theta=0.45°, eta=0.708, gamma=0.100, sx2=4.14, sy2=8.06, w=0.785
+    WARNING: gamma at lower bound (0.1) — второй Гаусс должен взять хвост
+  it 14: V refit (warmup ∞)
+fit time: 16.53s
+
+=== V(r) model vs V_emp(r) ===
+       r        V_emp  V_model·scale      ratio
+    0.25   8.1844e+02     8.6844e+02      1.061
+    1.25   7.5550e+02     7.9211e+02      1.048
+    2.25   6.7115e+02     6.6961e+02      0.998
+    3.25   5.5128e+02     5.3936e+02      0.978
+    4.25   4.2206e+02     4.0377e+02      0.957
+    5.25   3.3211e+02     3.1648e+02      0.953
+    6.25   2.5277e+02     2.3410e+02      0.926
+    7.25   2.0181e+02     1.8207e+02      0.902
+    8.25   1.6240e+02     1.4045e+02      0.865
+    9.25   1.2781e+02     1.0611e+02      0.830
+   10.25   1.0696e+02     8.6339e+01      0.807
+   11.25   8.8659e+01     6.8112e+01      0.768
+   12.25   7.5915e+01     5.6008e+01      0.738
+   13.25   6.5417e+01     4.5267e+01      0.692
+   14.25   5.6853e+01     3.7094e+01      0.652
+
+=== диагностика остатков ===
+rms = 7.0179e+01, max|r| = 8.3536e+02, sigma_MAD = 3.5734e+01
+frac(|r|>3·rms) = 2.122%, frac(|r|>5·rms) = 0.381%
+frac(|r|>3·σ_MAD) = 9.611%, frac(|r|>5·σ_MAD) = 3.216%
+χ²_w/M = 1.2636e+01
+χ²: total = 3.1340e+06, outliers(|r|>5·rms) = 5.8746e+04 (1.9% от χ²)
+Wf/Wf_base: median = 1.000, min = 0.000e+00
+b: mean = 2.0263e+01, max = 1.2532e+02, min = -1.4031e+01, median = 9.1280e+00
+
+=== топ-10 пикселей по mean|resid| ===
+   x    y      mean|r|       mean_r      n        eps          b dead
+  31   11   1.3906e+02   1.1449e+02    337  5.196e-01  1.198e+02    0
+  22    0   1.3360e+02   1.1184e+02    310  8.172e-02  1.106e+02    0
+   1    2   1.1306e+02   1.0056e+02    203  4.053e-01  6.098e+01    0
+  27    2   1.0090e+02   7.8617e+01    302  5.331e-01  1.077e+02    0
+  31   19   1.0060e+02   6.9321e+01    247  1.349e+00  4.095e+01    0
+  28   17   9.9249e+01   7.8785e+01    342  7.373e-01  7.059e+01    0
+  26   11   9.8552e+01   7.3185e+01    441  9.279e-01  7.868e+01    0
+  29   11   9.7167e+01   7.3846e+01    379  6.407e-01  1.056e+02    0
+  21    1   9.5852e+01   7.8642e+01    344  4.168e-01  7.067e+01    0
+  27   18   9.5671e+01   7.2255e+01    340  7.233e-01  9.397e+01    0
+
+=== топ-10 пикселей по |mean_resid| (смещение) ===
+  31   11 mean_r=  1.1449e+02 mean|r|=  1.3906e+02 n=   337 eps= 5.196e-01 b= 1.198e+02
+  22    0 mean_r=  1.1184e+02 mean|r|=  1.3360e+02 n=   310 eps= 8.172e-02 b= 1.106e+02
+   1    2 mean_r=  1.0056e+02 mean|r|=  1.1306e+02 n=   203 eps= 4.053e-01 b= 6.098e+01
+  28   17 mean_r=  7.8785e+01 mean|r|=  9.9249e+01 n=   342 eps= 7.373e-01 b= 7.059e+01
+  21    1 mean_r=  7.8642e+01 mean|r|=  9.5852e+01 n=   344 eps= 4.168e-01 b= 7.067e+01
+  27    2 mean_r=  7.8617e+01 mean|r|=  1.0090e+02 n=   302 eps= 5.331e-01 b= 1.077e+02
+  29   11 mean_r=  7.3846e+01 mean|r|=  9.7167e+01 n=   379 eps= 6.407e-01 b= 1.056e+02
+  26   11 mean_r=  7.3185e+01 mean|r|=  9.8552e+01 n=   441 eps= 9.279e-01 b= 7.868e+01
+  27   18 mean_r=  7.2255e+01 mean|r|=  9.5671e+01 n=   340 eps= 7.233e-01 b= 9.397e+01
+  31   19 mean_r=  6.9321e+01 mean|r|=  1.0060e+02 n=   247 eps= 1.349e+00 b= 4.095e+01
+
+=== σ_stat (kfold K=4) ===
+kfold(4): median σ_stat = 2.802e-02 (нефинитных: 0)
+σ_stat = nan для r > 14.0: 134 пикселей
+
+(real_eps не найден)
+
+=== beam σ (по P_avg, с вычетом пьедестала) ===
+x: σ=6.7976px  mean=14.304  bg=8.624e+01
+y: σ=3.8557px  mean=12.005  bg=9.626e+01
+
+=== V параметры (сумма 2 Voigt) ===
+A = 2.323785e+00
+σx1 = 3.2818 px
+σy1 = 3.2694 px
+θ = 0.453°
+η (доля Коши) = 0.7079
+γ (ширина Коши) = 0.1000
+σx2 = 4.1375 px (широкий Гаусс)
+σy2 = 8.0613 px (широкий Гаусс)
+w = 0.7853 (вес Voigt)
+центр: dx = 0.000, dy = 0.000
